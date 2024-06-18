@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, jsonify
 from app import app, series_collection
 from bson.objectid import ObjectId
 
@@ -7,6 +7,12 @@ from bson.objectid import ObjectId
 def index():
     series = list(series_collection.find())
     return render_template('index.html', series=series)
+
+
+@app.route('/series', methods=['GET'])
+def get_series():
+    series_list = list(series_collection.find())
+    return jsonify(series_list)
 
 
 @app.route('/add_series', methods=['POST'])

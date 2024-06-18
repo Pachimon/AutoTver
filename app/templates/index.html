@@ -27,11 +27,15 @@
                     </div>
                     <button type="submit" class="btn btn-secondary">Add Episode</button>
                 </form>
+                {% if series.episode %}
                 <ul>
-                    {% for episode in series.episodes %}
-                    <li>{{ episode.title }} - {{ episode.release_date }} - {% if episode.watched %}Watched{% else %}Not Watched{% endif %}</li>
+                    {% for category, episodes in series.episode.items() %}
+                        {% for episode in episodes %}
+                            <li>{{ category }} - {{ episode[0] }} - {% if episode.watched %}Watched{% else %}Not Watched{% endif %}</li>
+                        {% endfor %}
                     {% endfor %}
                 </ul>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
