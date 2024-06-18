@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Series Tracker</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Series Tracker</h1>
+        <form action="/add_series" method="POST">
+            <div class="form-group">
+                <input type="text" name="name" class="form-control" placeholder="Series Name">
+            </div>
+            <button type="submit" class="btn btn-primary">Add Series</button>
+        </form>
+        <hr>
+        <div class="row">
+            {% for series in series %}
+            <div class="col-md-4">
+                <h2>{{ series.name }}</h2>
+                <form action="/add_episode/{{ series._id }}" method="POST">
+                    <div class="form-group">
+                        <input type="text" name="title" class="form-control" placeholder="Episode Title">
+                        <input type="text" name="release_date" class="form-control" placeholder="Release Date">
+                    </div>
+                    <button type="submit" class="btn btn-secondary">Add Episode</button>
+                </form>
+                <ul>
+                    {% for episode in series.episodes %}
+                    <li>{{ episode.title }} - {{ episode.release_date }} - {% if episode.watched %}Watched{% else %}Not Watched{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
