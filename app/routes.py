@@ -26,16 +26,12 @@ def add_series():
     return redirect(url_for('index'))
 
 
-@app.route('/add_episode/<series_id>', methods=['POST'])
-def add_episode(series_id):
-    title = request.form['title']
-    release_date = request.form['release_date']
-    new_episode = {
-        'title': title,
-        'release_date': release_date,
-        'downloaded': False
-    }
-    series_collection.update_one({'_id': ObjectId(series_id)}, {'$push': {'episodes': new_episode}})
+@app.route('/toggle_episode/<series_id>/<category>', methods=['POST'])
+def toggle_episode(series_id, category):
+    follow_status = series_collection.find_one({'_id': ObjectId(series_id)})
+    follow_status = follow_status['follow']
+    follow_status[category] = not follow_status[category]
+    series_collection.update_one({'_id': ObjectId(series_id)}, {'$set': {'follow': follow_status}})
     return redirect(url_for('index'))
 
 

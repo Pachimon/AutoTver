@@ -19,19 +19,16 @@
         <div class="row">
             {% for series in series %}
             <div class="col-md-4">
-                <h2>{{ series.name }}</h2>
-                <form action="/add_episode/{{ series._id }}" method="POST">
-                    <div class="form-group">
-                        <input type="text" name="title" class="form-control" placeholder="Episode Title">
-                        <input type="text" name="release_date" class="form-control" placeholder="Release Date">
-                    </div>
-                    <button type="submit" class="btn btn-secondary">Add Episode</button>
-                </form>
+                <h2>{{ series.name }}: {{series._id}}</h2>
                 {% if series.episode %}
                 <ul>
-                    {% for category, episodes in series.episode.items() %}
-                        {% for episode in episodes %}
-                            <li>{{ category }} - {{ episode[0] }} - {% if episode.watched %}Watched{% else %}Not Watched{% endif %}</li>
+                    {% for category in series.episode.keys() %}
+                        {% for episode in series.episode[category] %}
+                            <li>{{ category }} - {{ episode[0] }} - {{ series.follow[category] }}
+                                <form action="/toggle_episode/{{ series._id }}/{{ category }}" method="POST">
+                                    <button type="submit" class="btn btn-secondary">Toggle Episode to DL List</button>
+                                </form>
+                            </li>
                         {% endfor %}
                     {% endfor %}
                 </ul>

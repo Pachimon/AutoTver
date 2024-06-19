@@ -1,7 +1,10 @@
+from collections import defaultdict
+
 from bs4 import BeautifulSoup
 from app import series_collection
 from requests_html import AsyncHTMLSession
 import re
+import asyncio
 
 
 BASE_DOMAIN = "https://tver.jp"
@@ -13,17 +16,19 @@ async def get_soup(url):
     if url.startswith("/series") or url.startswith("/episode"):
         url = BASE_DOMAIN + url
     print(f"Getting soup for {url=}")
-    session = AsyncHTMLSession()
-    response = await session.get(url)
-    await response.html.arender(sleep=4)
 
-    soup = BeautifulSoup(response.html.html, 'html.parser')
+    session = AsyncHTMLSession()
+    try:
+        response = await session.get(url)
+        await response.html.arender(sleep=4)
+        soup = BeautifulSoup(response.html.html, 'html.parser')
+    finally:
+        await session.close()
     return soup
 
 
 async def get_series_links(soup):
     links = soup.find_all('a', href=True)
-    print(f"{[link['href'] for link in links]=}")
     return set([link['href'] for link in links if "/series/" in link['href']])
 
 
@@ -78,21 +83,25 @@ async def update_series(url):
         for link in series_links:
             series_name, info = await get_series_info(link)
             print(f"found series: {series_name}, with {len(info.values())} episodes/vids")
+
+            categories = defaultdict(lambda: False)
+            for key in info:
+                categories[key]
             series_data = {
                 'name': series_name,
                 'episode': info,
                 'available': [],
                 'downloaded': [],
-                'follow': False
+                'follow': categories
             }
 
             # Fetch existing data
             existing_series = series_collection.find_one({'name': series_name})
             if existing_series:
-                # Merge the episode lists without duplication
                 updated_episodes = existing_series['episode'].update(info)
                 series_data['episode'] = updated_episodes
 
+            # Send to DB
             series_collection.update_one(
                 {'name': series_name},
                 {'$set': series_data},

@@ -14,7 +14,6 @@ scheduler.add_job(update_database, trigger="interval", hours=1)
 scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
 scheduler.start()
 
-# Run the Flask app in a separate thread
 if __name__ == "__main__":
     from threading import Thread
 
@@ -24,7 +23,6 @@ if __name__ == "__main__":
     flask_thread = Thread(target=run_flask)
     flask_thread.start()
 
-    # Run the asyncio event loop
     try:
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
