@@ -1,21 +1,10 @@
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import datetime
-import asyncio
-
 from app import app
-from app.scraper import update_database
+from app.tasks import scheduler, loop
+from threading import Thread
 
-# Create an asyncio event loop
-loop = asyncio.get_event_loop()
-
-# Configure the AsyncIOScheduler to use the event loop
-scheduler = AsyncIOScheduler(event_loop=loop)
-scheduler.add_job(update_database, trigger="interval", hours=1)
-scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
-scheduler.start()
 
 if __name__ == "__main__":
-    from threading import Thread
+    scheduler.start()
 
     def run_flask():
         app.run(debug=True, use_reloader=False)

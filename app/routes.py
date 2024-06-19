@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, jsonify
 from app import app, series_collection
 from bson.objectid import ObjectId
-import yt_dlp
+from app.tasks import download_episode, download_job
 
 
 @app.route('/')
@@ -37,24 +37,15 @@ def toggle_episode(series_id, category):
 
 
 @app.route('/download_episode/<series_id>/<category>/<episode_id>', methods=['POST'])
-def update_episode(series_id, category, episode_id):
-    def my_hook(d):
-        if d['status'] == 'finished':
-            print('Done downloading, now post-processing ...')
+def download_episode_test(series_id, category, episode_id):
+    download_episode(series_id, category, episode_id)
 
-    URLS = ["https://tver.jp" + '/episodes/' + episode_id]
-    series = series_collection.find_one({'_id': series_id})
-    ydl_opts = {
-        'format': 'best',
-        'writesubtitles': True,
-        'allsubtitles': True,
-        'subtitlesformat': 'srt/best',
-        'progress_hooks': [my_hook],
-        'outtmpl': f"/Media/{series['name']}/{series['episode'][category][episode_id]}.%(ext)s"
-    }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        error_code = ydl.download(URLS)
+@app.route('/download_job')
+def start_download_job():
+
+    pass
+    # return redirect(url_for('index'))
 
 
 @app.route('/delete_series/<series_id>')

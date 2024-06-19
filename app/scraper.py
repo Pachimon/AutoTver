@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from app import series_collection
 from requests_html import AsyncHTMLSession
 import re
-import asyncio
 
 
 BASE_DOMAIN = "https://tver.jp"
@@ -48,6 +47,7 @@ async def get_episode_links(soup):
 
         for episode_link in episode_links:
             episode_title = await get_episode_info(episode_link)
+            print(f"Episode: {episode_title}")
             categories[category][episode_link.split('/')[-1]] = episode_title
 
     return categories
@@ -65,15 +65,14 @@ async def get_series_info(url):
 
 
 async def get_episode_info(url):
-    soup = await get_soup(url)
-    if soup:
+    title_tag = soup = None
+    count = 0
+    while not title_tag or count > 2:
+        soup = await get_soup(url)
         # titles_title__KJ7tf
         title_tag = soup.find('h1', class_=re.compile(r'^titles_title'))
-        if not title_tag:
-            return "No Title"
-        print(f"Episode: {title_tag.text.strip()}")
-        return title_tag.text.strip()
-    return None
+        count += 1
+    return title_tag.text.strip() if title_tag else "No Title"
 
 
 async def update_series(url):
@@ -84,7 +83,7 @@ async def update_series(url):
         print(f"found {len(series_links)} series: {series_links}")
         for link in series_links:
             series_name, info = await get_series_info(link)
-            print(f"found series: {series_name}, with {len(info.values())} episodes/vids")
+            print(f"found series: {series_name}, with {sum([len(x) for x in info.values()])} episodes/vids")
 
             categories = defaultdict(lambda: False)
             for key in info:
