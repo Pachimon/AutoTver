@@ -20,7 +20,7 @@ async def get_soup(url):
     session = AsyncHTMLSession()
     try:
         response = await session.get(url)
-        await response.html.arender(sleep=4)
+        await response.html.arender(sleep=5)
         soup = BeautifulSoup(response.html.html, 'html.parser')
     finally:
         await session.close()
@@ -41,25 +41,27 @@ async def get_episode_links(soup):
             category = category_span.text.strip()
         else:
             category = 'Unknown'
-        categories[category] = []
+        categories[category] = {}
 
         links = container.find_all('a', href=True)
         episode_links = set([link['href'] for link in links if '/episodes/' in link['href']])
 
         for episode_link in episode_links:
             episode_title = await get_episode_info(episode_link)
-            categories[category].append((episode_title, episode_link))
+            categories[category][episode_link.split('/')[-1]] = episode_title
 
     return categories
 
 
 async def get_series_info(url):
-    soup = await get_soup(url)
-    if soup:
+    title_tag = soup = None
+    count = 0
+    while not title_tag or count > 2:
+        soup = await get_soup(url)
         # series-main_title__qi7zw
         title_tag = soup.find('h1', class_=re.compile(r'^series-main_title'))
-        return title_tag.text.strip(), await get_episode_links(soup)
-    return None
+        count += 1
+    return title_tag.text.strip() if title_tag else "No Title", await get_episode_links(soup)
 
 
 async def get_episode_info(url):
@@ -87,7 +89,11 @@ async def update_series(url):
             categories = defaultdict(lambda: False)
             for key in info:
                 categories[key]
+            series_id = link.split('/')[-1]
+
+            # TODO: check for already exists and only update info?
             series_data = {
+                '_id': series_id,
                 'name': series_name,
                 'episode': info,
                 'available': [],
@@ -96,7 +102,7 @@ async def update_series(url):
             }
 
             # Fetch existing data
-            existing_series = series_collection.find_one({'name': series_name})
+            existing_series = series_collection.find_one({'_id': series_id})
             if existing_series:
                 updated_episodes = existing_series['episode'].update(info)
                 series_data['episode'] = updated_episodes

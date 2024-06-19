@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for, jsonify
 from app import app, series_collection
 from bson.objectid import ObjectId
+import yt_dlp
 
 
 @app.route('/')
@@ -28,17 +29,32 @@ def add_series():
 
 @app.route('/toggle_episode/<series_id>/<category>', methods=['POST'])
 def toggle_episode(series_id, category):
-    follow_status = series_collection.find_one({'_id': ObjectId(series_id)})
+    follow_status = series_collection.find_one({'_id': series_id})
     follow_status = follow_status['follow']
     follow_status[category] = not follow_status[category]
-    series_collection.update_one({'_id': ObjectId(series_id)}, {'$set': {'follow': follow_status}})
+    series_collection.update_one({'_id': series_id}, {'$set': {'follow': follow_status}})
     return redirect(url_for('index'))
 
 
-@app.route('/update_episode/<series_id>/<episode_id>', methods=['POST'])
-def update_episode(series_id, episode_id):
-    # Add logic to update episode information
-    pass
+@app.route('/download_episode/<series_id>/<category>/<episode_id>', methods=['POST'])
+def update_episode(series_id, category, episode_id):
+    def my_hook(d):
+        if d['status'] == 'finished':
+            print('Done downloading, now post-processing ...')
+
+    URLS = ["https://tver.jp" + '/episodes/' + episode_id]
+    series = series_collection.find_one({'_id': series_id})
+    ydl_opts = {
+        'format': 'best',
+        'writesubtitles': True,
+        'allsubtitles': True,
+        'subtitlesformat': 'srt/best',
+        'progress_hooks': [my_hook],
+        'outtmpl': f"/Media/{series['name']}/{series['episode'][category][episode_id]}.%(ext)s"
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        error_code = ydl.download(URLS)
 
 
 @app.route('/delete_series/<series_id>')

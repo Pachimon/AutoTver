@@ -23,10 +23,13 @@
                 {% if series.episode %}
                 <ul>
                     {% for category in series.episode.keys() %}
-                        {% for episode in series.episode[category] %}
-                            <li>{{ category }} - {{ episode[0] }} - {{ series.follow[category] }}
+                        {% for episode_id, title in series.episode[category].items() %}
+                            <li>{{ category }} - {{ title }} - {{ series.follow[category] }}
                                 <form action="/toggle_episode/{{ series._id }}/{{ category }}" method="POST">
                                     <button type="submit" class="btn btn-secondary">Toggle Episode to DL List</button>
+                                </form>
+                                <form action="/download_episode/{{ series._id }}/{{ category }}/{{ episode_id }}" method="POST">
+                                    <button type="submit" class="btn btn-secondary">Download</button>
                                 </form>
                             </li>
                         {% endfor %}
