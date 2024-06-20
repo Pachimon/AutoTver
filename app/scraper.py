@@ -1,10 +1,11 @@
+import re, os
 from collections import defaultdict
 from urllib.request import urlretrieve
 
 from bs4 import BeautifulSoup
-from app import series_collection, episodes_collection
 from requests_html import AsyncHTMLSession
-import re, os
+
+from app import series_collection, episodes_collection
 
 RENDER_TIME = 6
 RETRY_COUNT = 2
@@ -48,9 +49,9 @@ async def get_episode_info(soup):
         for episode in episodes:
             link = episode.find('a', href=True)
             title = episode.find(class_=re.compile(r'^episode-row_title'))
-            print(f"Episode: {title}, {link}")
 
             # TODO: Change this to the schema below so we dont have to down below
+            print(f"Episode: {title.text.strip() if title else 'No Title'}, {link['href']}")
             categories[category][link['href'].split('/')[-1]] = title.text.strip() if title else "No Title"
     return categories
 
@@ -85,6 +86,12 @@ async def update_series(url):
             episodes = [(k, name, cat) for cat, d in info.items() for k, name in d.items()]
             episode_ids = [k for k, _, _ in episodes]
             print(f"found series: {series_name}, with {len(episode_ids)} episodes/vids")
+
+            unavailable_query = {
+                'series_id': series_id,
+                '_id': {'$nin': episode_ids}
+            }
+            episodes_collection.update_many(unavailable_query, {'$set': {'available': False}})
 
             existing_series = series_collection.find_one({'_id': series_id})
             if existing_series:

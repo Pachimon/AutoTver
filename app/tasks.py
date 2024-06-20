@@ -1,4 +1,5 @@
 import datetime
+
 import yt_dlp
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -10,28 +11,29 @@ loop = asyncio.get_event_loop()
 scheduler = AsyncIOScheduler(event_loop=loop)
 
 # Default tasks
-scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
+# scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
 scheduler.add_job(update_database, trigger="interval", hours=1)
 
 
 def download_episodes(episodes):
 	def my_hook(d):
-		print(d)
 		if d['status'] == 'finished':
-			episodes_collection.update_one({'_id': d['webpage_url_basename']}, {'$set': {'downloaded': True}})
+			if 'webpage_url_basename' in d:
+				episodes_collection.update_one({'_id': d['webpage_url_basename']}, {'$set': {'downloaded': True}})
 			print('Done downloading, now post-processing ...')
 
 	for episode in episodes:
 		urls = ["https://tver.jp" + '/episodes/' + episode['_id']]
 		series = series_collection.find_one({'_id': episode['series_id']})
+		episode_name = "%(fulltitle|No Title)s" if episode['name'] == "No Title" else episode['name']
 		ydl_opts = {
 			'format': 'best',
 			'writesubtitles': True,
 			'allsubtitles': True,
 			'subtitlesformat': 'srt/best',
 			'progress_hooks': [my_hook],
-			'outtmpl': f"/Media/{series['name']}/{episode['name']}.%(ext)s"
-			# 'outtmpl': f"/Media/{series['name']} - {series['_id']}/{episode['name']} - {episode['_id']}.%(ext)s"
+			'outtmpl': f"/Media/{series['name']}/{episode_name}.%(ext)s"
+			# 'outtmpl': f"/Media/{series['name']} - {series['_id']}/{episode_name} - {episode['_id']}.%(ext)s"
 		}
 
 		with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -1,5 +1,6 @@
 from app import app
 from app.tasks import scheduler, loop
+
 from threading import Thread
 
 

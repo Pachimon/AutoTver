@@ -1,8 +1,9 @@
 import datetime
+from bson.objectid import ObjectId
 
 from flask import render_template, request, redirect, url_for, jsonify
+
 from app import app, series_collection, episodes_collection
-from bson.objectid import ObjectId
 from app.tasks import download_episodes, download_job
 
 
