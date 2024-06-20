@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1 class="my-4">Series Tracker</h1>
-        <form action="/download_job" method="POST">
+        <form action="/download_job">
 <!--            <div class="form-group">-->
 <!--                <input type="text" name="name" class="form-control" placeholder="Series Name">-->
 <!--            </div>-->
@@ -19,20 +19,19 @@
         <div class="row">
             {% for series in series %}
             <div class="col-md-4">
+                <img src="{{ static_image(series._id + '.jpg') }}">
                 <h2>{{ series.name }}: {{series._id}}</h2>
-                {% if series.episode %}
+                {% if series.episodes %}
                 <ul>
-                    {% for category in series.episode.keys() %}
-                        {% for episode_id, title in series.episode[category].items() %}
-                            <li>{{ category }} - {{ title }} - {{ series.follow[category] }}
-                                <form action="/toggle_episode/{{ series._id }}/{{ category }}" method="POST">
-                                    <button type="submit" class="btn btn-secondary">Toggle Episode to DL List</button>
-                                </form>
-                                <form action="/download_episode/{{ series._id }}/{{ category }}/{{ episode_id }}" method="POST">
-                                    <button type="submit" class="btn btn-secondary">Download</button>
-                                </form>
-                            </li>
-                        {% endfor %}
+                    {% for episode_id in series.episodes %}
+                        <li>{{ episodes[episode_id].category }} - {{ episodes[episode_id].name }} - {{ episodes[episode_id].follow }}
+                            <form action="/toggle_episode/{{ series._id }}/{{ episodes[episode_id].category }}" method="POST">
+                                <button type="submit" class="btn btn-secondary">Toggle Episode to DL List</button>
+                            </form>
+                            <form action="/download_episode/{{ episode_id }}" method="POST">
+                                <button type="submit" class="btn btn-secondary">Download</button>
+                            </form>
+                        </li>
                     {% endfor %}
                 </ul>
                 {% endif %}

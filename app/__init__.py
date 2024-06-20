@@ -5,8 +5,9 @@ app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/series_db"
 
 client = MongoClient(app.config["MONGO_URI"])
-db = client.series_db
+db = client.tver_db
 series_collection = db.series
+episodes_collection = db.episodes
 
 from app import routes
 
