@@ -1,5 +1,9 @@
-Flask
-pymongo
-requests
-beautifulsoup4
-APScheduler
+Flask==3.0.3
+pymongo==4.7.3
+requests==2.32.3
+beautifulsoup4==4.12.3
+APScheduler==3.10.4
+yt-dlp
+requests-html
+pyppeteer==2.0.0
+lxml_html_clean

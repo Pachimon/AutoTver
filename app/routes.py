@@ -18,7 +18,24 @@ def utility_processor():
 def index():
     series = list(series_collection.find())
     episodes = {x['_id']: x for x in list(episodes_collection.find())}
-    return render_template('index.html', series=series, episodes=episodes)
+    for show in series:
+        category_episodes = {}
+        for category in show['follow'].keys():
+            filtered_episodes = [episodes[episode_id] for episode_id in show['episodes'] if
+                                 episodes[episode_id]['category'] == category]
+            sorted_episodes = sorted(filtered_episodes, key=lambda ep: ep['name'])
+            category_episodes[category] = sorted_episodes
+        show['episodes'] = category_episodes
+
+    def sort_series(series_list):
+        def follow_key(s):
+            return not any(s['follow'].values())
+
+        return sorted(series_list, key=follow_key)
+
+    # Sort the series list
+    sorted_series = sort_series(series)
+    return render_template('index.html', series=sorted_series, episodes=episodes)
 
 
 @app.route('/series', methods=['GET'])

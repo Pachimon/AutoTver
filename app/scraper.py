@@ -7,8 +7,8 @@ from requests_html import AsyncHTMLSession
 
 from app import series_collection, episodes_collection
 
-RENDER_TIME = 6
-RETRY_COUNT = 2
+RENDER_TIME = 10  # 4 seconds fails to render sometimes
+RETRY_COUNT = 3
 BASE_DOMAIN = "https://tver.jp"
 variety_url = 'https://tver.jp/categories/variety'
 drama_url = 'https://tver.jp/categories/drama'
@@ -44,36 +44,35 @@ async def get_episode_info(soup):
         else:
             category = 'Unknown'
         categories[category] = {}
-
         episodes = container.find_all(class_=re.compile(r'^episode-row_host'))
         for episode in episodes:
-            link = episode.find('a', href=True)
+            link = episode.find('a', href=True, attrs={'href': re.compile(r'^/?episodes/\w+')})
             title = episode.find(class_=re.compile(r'^episode-row_title'))
-
+            if link:
             # TODO: Change this to the schema below so we dont have to down below
-            print(f"Episode: {title.text.strip() if title else 'No Title'}, {link['href']}")
-            categories[category][link['href'].split('/')[-1]] = title.text.strip() if title else "No Title"
+                print(f"Episode: {title.text.strip() if title else 'No Title'}, {link['href']}")
+                categories[category][link['href'].split('/')[-1]] = title.text.strip() if title else "No Title"
     return categories
 
 
 async def get_series_info(url):
     title_tag = soup = None
     count = 0
-    while not title_tag or count < RETRY_COUNT:
+    while not title_tag and count < RETRY_COUNT:
         soup = await get_soup(url)
         # series-main_title__qi7zw
         title_tag = soup.find('h1', class_=re.compile(r'^series-main_title'))
         count += 1
     img = soup.find('img', class_=re.compile(r'^thumbnail-img_img'))
-    print(img)
-    if img:
-        save_path = f"app/static/images/{url.split('/')[-1]}.jpg"
+    save_path = f"app/static/images/{url.split('/')[-1]}.jpg"
+    if img and not os.path.exists(save_path):
+        print(f"Saving Image for series: {title_tag}")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         urlretrieve(img['src'], save_path)
     return title_tag.text.strip() if title_tag else "No Title", await get_episode_info(soup)
 
 
-async def update_series(url):
+async def update_category(url):
     print(f"trying for url {url}")
     soup = await get_soup(url)
     if soup:
@@ -83,8 +82,8 @@ async def update_series(url):
             series_name, info = await get_series_info(link)
 
             series_id = link.split('/')[-1]
-            episodes = [(k, name, cat) for cat, d in info.items() for k, name in d.items()]
-            episode_ids = [k for k, _, _ in episodes]
+            episodes = list(set([(k, name, cat) for cat, d in info.items() for k, name in d.items()]))
+            episode_ids = list(set([k for k, _, _ in episodes]))
             print(f"found series: {series_name}, with {len(episode_ids)} episodes/vids")
 
             unavailable_query = {
@@ -144,8 +143,8 @@ async def update_series(url):
 
 async def update_database():
     print("starting update database")
-    await update_series(drama_url)
-    await update_series(variety_url)
+    await update_category(drama_url),
+    await update_category(variety_url)
     print("finished update database")
 
 

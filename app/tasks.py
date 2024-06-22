@@ -2,6 +2,7 @@ import datetime
 
 import yt_dlp
 import asyncio
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app import series_collection, episodes_collection
@@ -9,10 +10,6 @@ from app.scraper import update_database
 
 loop = asyncio.get_event_loop()
 scheduler = AsyncIOScheduler(event_loop=loop)
-
-# Default tasks
-# scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
-scheduler.add_job(update_database, trigger="interval", hours=1)
 
 
 def download_episodes(episodes):
@@ -40,12 +37,21 @@ def download_episodes(episodes):
 			error_code = ydl.download(urls)
 
 
-def download_job(time):
+def download_job(time=None):
+	if not time:
+		time = datetime.datetime.now()
 	download_requirements = {
 		'follow': True,
 		'available': True,
 		'downloaded': False,
 	}
 	download_list = list(episodes_collection.find(download_requirements))
+	print(f"Found {len(download_list)} episodes needing to be downloaded")
 	print(f"Starting Download Job...")
 	scheduler.add_job(download_episodes, args=[download_list], trigger="date", run_date=time)
+
+
+# Default tasks
+scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
+scheduler.add_job(update_database, trigger="interval", hours=8)
+scheduler.add_job(download_job, trigger="date", run_date=datetime.datetime.now() + datetime.timedelta(minutes=40))
