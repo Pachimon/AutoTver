@@ -15,14 +15,14 @@ scheduler = AsyncIOScheduler(event_loop=loop)
 def download_episodes(episodes):
 	def my_hook(d):
 		if d['status'] == 'finished':
-			if 'webpage_url_basename' in d:
-				episodes_collection.update_one({'_id': d['webpage_url_basename']}, {'$set': {'downloaded': True}})
+			if 'info_dict' in d and 'webpage_url_basename' in d['info_dict']:
+				episodes_collection.update_one({'_id': d['info_dict']['webpage_url_basename']}, {'$set': {'downloaded': True}})
 			print('Done downloading, now post-processing ...')
 
 	for episode in episodes:
 		urls = ["https://tver.jp" + '/episodes/' + episode['_id']]
 		series = series_collection.find_one({'_id': episode['series_id']})
-		episode_name = "%(fulltitle|No Title)s" if episode['name'] == "No Title" else episode['name']
+		episode_name = "%(fulltitle|No Title)s" if episode['name'] == "No Title" else episode['name'].replace('\\', '-')
 		ydl_opts = {
 			'format': 'best',
 			'writesubtitles': True,
@@ -32,9 +32,16 @@ def download_episodes(episodes):
 			'outtmpl': f"/Media/{series['name']}/{episode_name}.%(ext)s"
 			# 'outtmpl': f"/Media/{series['name']} - {series['_id']}/{episode_name} - {episode['_id']}.%(ext)s"
 		}
-
-		with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-			error_code = ydl.download(urls)
+		try:
+			with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+				error_code = ydl.download(urls)
+		# except yt_dlp.networking.ex as e:
+		# except yt_dlp.utils.ExtractorError as e:
+		except yt_dlp.DownloadError as e:
+			# TODO: Handle this later
+			print(e)
+		except Exception as e:
+			print(e)
 
 
 def download_job(time=None):
@@ -47,11 +54,13 @@ def download_job(time=None):
 	}
 	download_list = list(episodes_collection.find(download_requirements))
 	print(f"Found {len(download_list)} episodes needing to be downloaded")
-	print(f"Starting Download Job...")
-	scheduler.add_job(download_episodes, args=[download_list], trigger="date", run_date=time)
+	if download_list:
+		print(f"Starting Download Job...")
+		scheduler.add_job(download_episodes, args=[download_list], trigger="date", run_date=time)
 
 
 # Default tasks
 scheduler.add_job(update_database, trigger="date", run_date=datetime.datetime.now())
+scheduler.add_job(download_job, trigger="date", run_date=datetime.datetime.now() + datetime.timedelta(minutes=50))
 scheduler.add_job(update_database, trigger="interval", hours=8)
-scheduler.add_job(download_job, trigger="date", run_date=datetime.datetime.now() + datetime.timedelta(minutes=40))
+scheduler.add_job(download_job, trigger="interval", hours=9)

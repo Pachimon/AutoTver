@@ -48,6 +48,7 @@
             padding: 0;
             font-size: 0.8em;
             display: none;
+            color: white;
         }
         .episode-list li {
             margin-bottom: 5px;
@@ -59,7 +60,7 @@
             color: #0f0;
         }
         .downloaded {
-            color: #00f;
+            color: #66b;
         }
         .btn-secondary {
             margin-top: 5px;
@@ -83,20 +84,24 @@
                         {% if series.episodes %}
                         <div class="categories">
                             {% for category, category_episodes in series.episodes.items() %}
-                            <div class="category{% if series.follow[category] %}_followed{% endif %}" onmouseover="showEpisodes(this)" onmouseout="hideEpisodes(this)">{{ category }}</div>
-                            <form action="/toggle_episode/{{ series._id }}/{{ category }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn btn-secondary btn-sm">Toggle DL List</button>
-                            </form>
-                            <ul class="episode-list">
-                                {% for episode in category_episodes %}
-                                <li class="{% if episode.available %}available{% endif %}{% if episode.downloaded %} downloaded{% endif %}">
-                                    {{ episode.name }}
-                                    <form action="/download_episode/{{ episode._id }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-secondary btn-sm">Download</button>
+                                <div class="category-wrapper" onmouseover="showEpisodes(this)" onmouseout="hideEpisodes(this)">
+                                    <div class="category{% if series.follow[category] %}_followed{% endif %}">
+                                        {{ category }}
+                                    </div>
+                                    <form action="/toggle_episode/{{ series._id }}/{{ category }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Toggle DL List</button>
                                     </form>
-                                </li>
-                                {% endfor %}
-                            </ul>
+                                    <ul class="episode-list" style="display:none;">
+                                        {% for episode in category_episodes %}
+                                        <li class="{% if episode.available %}available{% endif %}{% if episode.downloaded %} downloaded{% endif %}">
+                                            {{ episode.name }}
+                                            <form action="/download_episode/{{ episode._id }}" method="POST" style="display:inline;">
+                                                <button type="submit" class="btn btn-secondary btn-sm">Download</button>
+                                            </form>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
                             {% endfor %}
                         </div>
                         {% endif %}
@@ -108,13 +113,13 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function showEpisodes(categoryElement) {
-            const episodeList = categoryElement.nextElementSibling.nextElementSibling;
+        function showEpisodes(wrapperElement) {
+            const episodeList = wrapperElement.querySelector('.episode-list');
             episodeList.style.display = 'block';
         }
 
-        function hideEpisodes(categoryElement) {
-            const episodeList = categoryElement.nextElementSibling.nextElementSibling;
+        function hideEpisodes(wrapperElement) {
+            const episodeList = wrapperElement.querySelector('.episode-list');
             episodeList.style.display = 'none';
         }
     </script>

@@ -46,7 +46,7 @@ async def get_episode_info(soup):
         categories[category] = {}
         episodes = container.find_all(class_=re.compile(r'^episode-row_host'))
         for episode in episodes:
-            link = episode.find('a', href=True, attrs={'href': re.compile(r'^/?episodes/\w+')})
+            link = episode.find('a', attrs={'href': re.compile(r'^/?episodes/\w+')})
             title = episode.find(class_=re.compile(r'^episode-row_title'))
             if link:
             # TODO: Change this to the schema below so we dont have to down below
@@ -119,18 +119,20 @@ async def update_category(url):
 
             for episode in episodes:
                 existing_episode = episodes_collection.find_one({'_id': episode[0]})
+                category = episode[2]
                 if existing_episode:
                     episode_data = {
                         'available': True,
-                        'category': episode[2],
+                        'category': category,
+                        'follow': existing_series['follow'][category] if existing_series and category in existing_series['follow'] else False,
                     }
                 else:
                     episode_data = {
                         '_id': episode[0],
                         'name': episode[1],
-                        'category': episode[2],
+                        'category': category,
                         'series_id': series_id,
-                        'follow': False,
+                        'follow': existing_series['follow'][category] if existing_series and category in existing_series['follow'] else False,
                         'available': True,
                         'downloaded': False,
                     }
