@@ -29,7 +29,7 @@ def download_episodes(episodes):
 			'allsubtitles': True,
 			'subtitlesformat': 'srt/best',
 			'progress_hooks': [my_hook],
-			'outtmpl': f"/Media/{series['name']}/{episode_name}.%(ext)s"
+			'outtmpl': f"/Media/{episode['category']}/{series['name']}/{episode_name}.%(ext)s"
 			# 'outtmpl': f"/Media/{series['name']} - {series['_id']}/{episode_name} - {episode['_id']}.%(ext)s"
 		}
 		try:
