@@ -5,7 +5,7 @@ from urllib.request import urlretrieve
 from bs4 import BeautifulSoup
 from requests_html import AsyncHTMLSession
 
-from app import series_collection, episodes_collection
+from app import series_collection, episodes_collection, tver_logs
 
 RENDER_TIME = 10  # 4 seconds fails to render sometimes
 RETRY_COUNT = 3
@@ -19,7 +19,7 @@ new_other_url = 'https://tver.jp/newer/other'
 async def get_soup(url, render=0, scroll=0):
     if url.startswith("/series") or url.startswith("/episode"):
         url = BASE_DOMAIN + url
-    print(f"Getting soup for {url=}")
+    tver_logs.debug(f"Getting soup for {url=}")
 
     session = AsyncHTMLSession()
     try:
@@ -46,8 +46,8 @@ async def get_episode_info(soup):
             link = episode.find('a', attrs={'href': re.compile(r'^/?episodes/\w+')})
             title = episode.find(class_=re.compile(r'^episode-row_title'))
             if link:
-            # TODO: Change this to the schema below so we dont have to down below
-                print(f"Episode: {title.text.strip() if title else 'No Title'}, {link['href']}")
+                # TODO: Change this to the schema below so we dont have to down below
+                tver_logs.debug(f"Episode: {title.text.strip() if title else 'No Title'}, {link['href']}")
                 categories[category][link['href'].split('/')[-1]] = title.text.strip() if title else "No Title"
     return categories
 
@@ -63,7 +63,7 @@ async def get_series_info(url):
     img = soup.find('img', class_=re.compile(r'^thumbnail-img_img'))
     save_path = f"app/static/images/{url.split('/')[-1]}.jpg"
     if img and not os.path.exists(save_path):
-        print(f"Saving Image for series: {title_tag}")
+        tver_logs.debug(f"Saving Image for series: {title_tag}")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         urlretrieve(img['src'], save_path)
     return title_tag.text.strip() if title_tag else "No Title", await get_episode_info(soup)
@@ -81,37 +81,39 @@ async def update_from_urls(urls):
         soup = await get_soup(url, render=2, scroll=9)
         series_links.update(await get_pattern_links(soup, 'series'))
         episode_links.update(await get_pattern_links(soup, 'episodes'))
-        print(f"{len(series_links)=}, {len(episode_links)=}")
+        tver_logs.debug(f"{len(series_links)=}, {len(episode_links)=}")
 
     # Update using the first batch of series links
-    print(f"found {len(series_links)} series: {series_links}")
+    tver_logs.debug(f"found {len(series_links)} series: {series_links}")
     in_db_links = await series_links_to_database(series_links)
-    print("Finished first batch")
 
     # Remove all the added series from first batch
     episode_links -= in_db_links
 
+    tver_logs.debug("Finished first batch of series. Finding second batch from episodes.")
+
     # Find all unadded series using episode links
-    print("Starting second batch from episodes")
     series_links_from_ep = set()
     for ep_link in episode_links:
         ep_soup = await get_soup(ep_link, render=6)
         ser_links = await get_pattern_links(ep_soup, 'series')
         series_links_from_ep.update(ser_links)
-    print(f"found {len(series_links_from_ep)} series: {series_links_from_ep}")
-    print(f"Total found {len(series_links_from_ep) + len(series_links)}")
+    tver_logs.debug(f"found {len(series_links_from_ep)} series: {series_links_from_ep}"
+                    f"\nTotal found {len(series_links_from_ep) + len(series_links)}"
+                    f"Starting Second batch of series")
     await series_links_to_database(series_links_from_ep)
 
 
 async def series_links_to_database(series_links):
     episode_links = set()
-    for link in series_links:
+    for i, link in enumerate(series_links):
         series_name, info = await get_series_info(link)
 
         series_id = link.split('/')[-1]
         episodes = list(set([(k, name, cat) for cat, d in info.items() for k, name in d.items()]))
         episode_ids = list(set([k for k, _, _ in episodes]))
-        print(f"found series: {series_name}, with {len(episode_ids)} episodes/vids")
+        tver_logs.debug(f"link[{i}/{len(series_links)}] found series: {series_name},"
+                        f" with {len(episode_ids)} episodes/vids")
 
         unavailable_query = {
             'series_id': series_id,
@@ -149,6 +151,7 @@ async def series_links_to_database(series_links):
 
             existing_episode = episodes_collection.find_one({'_id': episode[0]})
             category = episode[2]
+            # TODO: Add last modified, release date, maybe more
             if existing_episode:
                 episode_data = {
                     'available': True,
@@ -174,9 +177,9 @@ async def series_links_to_database(series_links):
 
 
 async def update_database():
-    print("starting update database")
+    tver_logs.info("starting update database")
     await update_from_urls([variety_url, drama_url, new_all_url, new_other_url])
-    print("finished update database")
+    tver_logs.info("finished update database")
 
 
 # Example usage

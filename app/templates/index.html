@@ -94,10 +94,10 @@
                                     <ul class="episode-list" style="display:none;">
                                         {% for episode in category_episodes %}
                                         <li class="{% if episode.available %}available{% endif %}{% if episode.downloaded %} downloaded{% endif %}">
-                                            {{ episode.name }}
                                             <form action="/download_episode/{{ episode._id }}" method="POST" style="display:inline;">
                                                 <button type="submit" class="btn btn-secondary btn-sm">Download</button>
                                             </form>
+                                            {{ episode.name }}
                                         </li>
                                         {% endfor %}
                                     </ul>
